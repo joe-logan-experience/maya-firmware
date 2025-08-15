@@ -1,2 +1,0 @@
-# Load Sysbuild board Kconfig descriptions.
-osource "/Users/joelogan/zephyrproject/zephyr/boards/espressif/esp32_devkitc/Kconfig.sysbuild"
