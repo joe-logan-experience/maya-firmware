@@ -1,0 +1,58 @@
+cmake:
+  application:
+    configuration-dir: '/Users/joelogan/Desktop/projects/maya-firmware'
+    source-dir: '/Users/joelogan/Desktop/projects/maya-firmware'
+  board:
+    name: 'esp32_devkitc'
+    path:
+     - '/Users/joelogan/zephyrproject/zephyr/boards/espressif/esp32_devkitc'
+    qualifiers: 'esp32/procpu'
+    revision: ''
+  devicetree:
+    bindings-dirs:
+     - '/Users/joelogan/zephyrproject/zephyr/dts/bindings'
+    files:
+     - '/Users/joelogan/zephyrproject/zephyr/boards/espressif/esp32_devkitc/esp32_devkitc_procpu.dts'
+    include-dirs:
+     - '/Users/joelogan/zephyrproject/modules/hal/ambiq/dts'
+     - '/Users/joelogan/zephyrproject/modules/hal/atmel/include'
+     - '/Users/joelogan/zephyrproject/modules/hal/bouffalolab/include'
+     - '/Users/joelogan/zephyrproject/modules/hal/bouffalolab/include/zephyr'
+     - '/Users/joelogan/zephyrproject/modules/hal/gigadevice/include'
+     - '/Users/joelogan/zephyrproject/modules/hal/microchip/include'
+     - '/Users/joelogan/zephyrproject/modules/hal/microchip/dts'
+     - '/Users/joelogan/zephyrproject/modules/hal/nuvoton/dts'
+     - '/Users/joelogan/zephyrproject/modules/hal/nxp/dts'
+     - '/Users/joelogan/zephyrproject/modules/hal/stm32/dts'
+     - '/Users/joelogan/zephyrproject/modules/hal/ti/dts'
+     - '/Users/joelogan/zephyrproject/zephyr/include'
+     - '/Users/joelogan/zephyrproject/zephyr/include/zephyr'
+     - '/Users/joelogan/zephyrproject/zephyr/dts/common'
+     - '/Users/joelogan/zephyrproject/zephyr/dts/vendor'
+     - '/Users/joelogan/zephyrproject/zephyr/dts/rx'
+     - '/Users/joelogan/zephyrproject/zephyr/dts/x86'
+     - '/Users/joelogan/zephyrproject/zephyr/dts/xtensa'
+     - '/Users/joelogan/zephyrproject/zephyr/dts/sparc'
+     - '/Users/joelogan/zephyrproject/zephyr/dts/riscv'
+     - '/Users/joelogan/zephyrproject/zephyr/dts/posix'
+     - '/Users/joelogan/zephyrproject/zephyr/dts/arm64'
+     - '/Users/joelogan/zephyrproject/zephyr/dts/arm'
+     - '/Users/joelogan/zephyrproject/zephyr/dts/arc'
+     - '/Users/joelogan/zephyrproject/zephyr/dts'
+  kconfig:
+    files:
+     - '/Users/joelogan/zephyrproject/zephyr/boards/espressif/esp32_devkitc/esp32_devkitc_procpu_defconfig'
+     - '/Users/joelogan/Desktop/projects/maya-firmware/prj.conf'
+    user-files:
+     - '/Users/joelogan/Desktop/projects/maya-firmware/prj.conf'
+  toolchain:
+    name: 'zephyr'
+    path: '/Users/joelogan/zephyr-sdk-0.17.2'
+  zephyr:
+    version: '4.2.99'
+    zephyr-base: '/Users/joelogan/zephyrproject/zephyr'
+version: '0.1.0'
+west:
+  command: '/Users/joelogan/zephyrproject/.venv/bin/west build -p always -b esp32_devkitc/esp32/procpu'
+  topdir: '/Users/joelogan/zephyrproject'
+  version: '1.4.0'
