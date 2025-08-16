@@ -1,0 +1,14 @@
+/ {
+    leds {
+        compatible = "gpio-leds";
+
+        led0: user_led {
+            gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;  /* onboard LED on GPIO2, active-low on many boards */
+            label = "User LED";
+        };
+    };
+
+    aliases {
+        led0 = &led0;
+    };
+};
