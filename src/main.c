@@ -5,6 +5,10 @@
 #include <zephyr/bluetooth/conn.h>
 #include <string.h>
 
+
+/* GAP preset (modern) */
+#define ADV_PRESET  BT_LE_ADV_CONN_FAST_2
+
 /* Adv payload: flags only */
 static const struct bt_data ad[] = {
     BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
@@ -15,6 +19,14 @@ static const struct bt_data sd[] = {
     BT_DATA(BT_DATA_NAME_COMPLETE,
             CONFIG_BT_DEVICE_NAME, strlen(CONFIG_BT_DEVICE_NAME)),
 };
+
+
+static void adv_restart_work_handler(struct k_work *work)
+{
+    int rc = bt_le_adv_start(ADV_PRESET, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
+    printk("Adv %s (err %d)\n", rc ? "restart failed" : "restarted", rc);
+}
+K_WORK_DEFINE(adv_restart_work, adv_restart_work_handler);
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
@@ -36,11 +48,9 @@ static void connected(struct bt_conn *conn, uint8_t err)
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
     printk("Disconnected (0x%02x). Restarting adv...\n", reason);
-    bt_le_adv_stop(); /* harmless if already stopped */
-    int rc = bt_le_adv_start(BT_LE_ADV_CONN_FAST_2, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
-    if (rc) {
-        printk("Adv restart failed (err %d)\n", rc);
-    }
+    printk("Disconnected (0x%02x). Queuing adv restart...\n", reason);
+    /* Don’t call bt_le_adv_start() directly here; defer it a bit */
+    k_work_submit(&adv_restart_work);              /* immediate */
 }
 
 BT_CONN_CB_DEFINE(conn_cbs) = {
@@ -58,7 +68,7 @@ void main(void)
     printk("Bluetooth initialized\n");
 
     /* Use GAP preset: FAST_1 (faster, meant for user-initiated ble advertising) or FAST_2 (still fast) */
-    err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_2, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
+    err = bt_le_adv_start(ADV_PRESET, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
     printk("%s advertising as \"%s\" (err %d)\n",
            err ? "Failed to start" : "Started",
            CONFIG_BT_DEVICE_NAME, err);
