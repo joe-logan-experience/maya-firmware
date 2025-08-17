@@ -23,7 +23,8 @@
     /* Map LEDC CH0 to GPIO25 (change if you use a different pin) */
     ledc0_servo_pins: ledc0_servo_pins {
         group1 {
-            pinmux = <LEDC_CH0_GPIO25>;
+            pinmux = <LEDC_CH0_GPIO25>,
+                     <LEDC_CH1_GPIO33>;
             output-enable;
         };
     };
@@ -36,9 +37,6 @@
     #address-cells = <1>;
     #size-cells = <0>;
 
-    /* One channel for one servo */
-    channel0@0 {
-        reg = <0>;   /* Channel ID 0 must match LEDC_CH0_... above */
-        timer = <0>; /* Use timer 0 for 50 Hz */
-    };
+    channel0@0 { reg = <0>; timer = <0>; }; /* PAN  */
+    channel1@1 { reg = <1>; timer = <0>; }; /* TILT */
 };

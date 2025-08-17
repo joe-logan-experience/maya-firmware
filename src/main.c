@@ -20,8 +20,9 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 #define LEDC0_NODE DT_NODELABEL(ledc0)
 static const struct device *pwm_ledc;
 
-/* Use LEDC channel 0 (we mapped CH0 to your chosen GPIO in the overlay) */
-#define SERVO_CH   0
+/* Channels: match overlay channel regs */
+#define CH_PAN   0
+#define CH_TILT  1
 
 /* 50 Hz servo timing */
 #define SERVO_PERIOD_NS  20000000ULL   /* 20 ms */
@@ -55,7 +56,7 @@ static const struct bt_data sd[] = {
             CONFIG_BT_DEVICE_NAME, strlen(CONFIG_BT_DEVICE_NAME)),
 };
 
-
+/* ===== Work item to safely restart advertising ===== */
 static void adv_restart_work_handler(struct k_work *work)
 {
     int rc = bt_le_adv_start(ADV_PRESET, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
@@ -64,28 +65,34 @@ static void adv_restart_work_handler(struct k_work *work)
 K_WORK_DEFINE(adv_restart_work, adv_restart_work_handler);
 
 
-/* ===== GATT: one-byte Write-Without-Response characteristic for servo angle ===== */
-#define BT_UUID_MAYA_SVC  BT_UUID_DECLARE_128(0x12,0x34,0,0,0,0,0,0,0,0,0,0,0,0,0xA1,0x01)
-#define BT_UUID_MAYA_SERVO BT_UUID_DECLARE_128(0x12,0x34,0,0,0,0,0,0,0,0,0,0,0,0,0xA1,0x02)
+/* ===== GATT: combined vector command (pan, tilt) via Write Without Response ===== */
+/* 128-bit UUIDs (pick your own later) */
+#define BT_UUID_MAYA_SVC   BT_UUID_DECLARE_128(0x12,0x34,0,0,0,0,0,0,0,0,0,0,0,0,0xA2,0x01)
+#define BT_UUID_MAYA_VEC   BT_UUID_DECLARE_128(0x12,0x34,0,0,0,0,0,0,0,0,0,0,0,0,0xA2,0x02)
 
-static atomic_t servo_target_deg = ATOMIC_INIT(90);
+/* Targets updated by BLE writes; control loop slews toward them */
+static atomic_t pan_target  = ATOMIC_INIT(90);
+static atomic_t tilt_target = ATOMIC_INIT(90);
 
-static ssize_t servo_write_wnr(struct bt_conn *conn, const struct bt_gatt_attr *attr,
-                               const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
+/* Expect exactly 2 bytes: [pan_deg, tilt_deg] (0–180) */
+static ssize_t vec_write_wnr(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+                             const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
 {
-    if (offset != 0 || len != 1) {
+    if (offset != 0 || len != 2) {
         return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
     }
-    uint8_t deg = *((const uint8_t *)buf);
-    atomic_set(&servo_target_deg, CLAMP(deg, 0, 180));
+    const uint8_t *p = buf;
+    atomic_set(&pan_target,  CLAMP(p[0], 0, 180));
+    atomic_set(&tilt_target, CLAMP(p[1], 0, 180));
     return len;
 }
 
 BT_GATT_SERVICE_DEFINE(maya_svc,
     BT_GATT_PRIMARY_SERVICE(BT_UUID_MAYA_SVC),
-    BT_GATT_CHARACTERISTIC(BT_UUID_MAYA_SERVO,
+    BT_GATT_CHARACTERISTIC(BT_UUID_MAYA_VEC,
         BT_GATT_CHRC_WRITE_WITHOUT_RESP,
-        BT_GATT_PERM_WRITE, NULL, servo_write_wnr, NULL),
+        BT_GATT_PERM_WRITE,
+        NULL, vec_write_wnr, NULL),
 );
 
 
@@ -139,8 +146,9 @@ void main(void)
         printk("LEDC not ready\n");
         return;
     }
-    /* Center servo initially (90°) */
-    pwm_set(pwm_ledc, SERVO_CH, SERVO_PERIOD_NS, deg_to_pulse_ns(90), 0);
+    /* Center both servos initially */
+    pwm_set(pwm_ledc, CH_PAN,  SERVO_PERIOD_NS, deg_to_pulse_ns(90), 0);
+    pwm_set(pwm_ledc, CH_TILT, SERVO_PERIOD_NS, deg_to_pulse_ns(90), 0);
 
     int err = bt_enable(NULL);
     if (err) {
@@ -158,12 +166,18 @@ void main(void)
     /* Turn LED off */
     gpio_pin_set_dt(&led, 0);
 
-    /* Control loop: smooth servo motion at 200 Hz */
-    uint8_t cur = 90;
+    /* Control loop: 200 Hz — smooth slew to targets */
+    uint8_t pan_cur = 90, tilt_cur = 90;
     while (1) {
-        uint8_t tgt = (uint8_t)atomic_get(&servo_target_deg);
-        cur = slew(cur, tgt, 3);  /* change ≤3° per 5 ms tick */
-        pwm_set(pwm_ledc, SERVO_CH, SERVO_PERIOD_NS, deg_to_pulse_ns(cur), 0);
+        uint8_t pan_tgt  = (uint8_t)atomic_get(&pan_target);
+        uint8_t tilt_tgt = (uint8_t)atomic_get(&tilt_target);
+
+        pan_cur  = slew(pan_cur,  pan_tgt,  3);  /* ≤3° per 5 ms */
+        tilt_cur = slew(tilt_cur, tilt_tgt, 3);
+
+        pwm_set(pwm_ledc, CH_PAN,  SERVO_PERIOD_NS, deg_to_pulse_ns(pan_cur),  0);
+        pwm_set(pwm_ledc, CH_TILT, SERVO_PERIOD_NS, deg_to_pulse_ns(tilt_cur), 0);
+
         k_sleep(K_MSEC(5));
     }
 }
