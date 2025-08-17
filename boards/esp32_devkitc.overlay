@@ -12,3 +12,9 @@
         led0 = &led0;
     };
 };
+
+/* Enable the ESP32 Bluetooth HCI driver */
+&esp32_bt_hci {
+    status = "okay";
+    bt-hci-name = "bt_hci0";
+};
