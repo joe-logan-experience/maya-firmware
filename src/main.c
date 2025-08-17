@@ -3,11 +3,18 @@
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/hci.h>
 #include <zephyr/bluetooth/conn.h>
+#include <zephyr/drivers/gpio.h>
 #include <string.h>
 
 
 /* GAP preset (modern) */
 #define ADV_PRESET  BT_LE_ADV_CONN_FAST_2
+
+/* LED0 node label from device tree */
+#define LED0_NODE DT_ALIAS(led0)
+
+static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+
 
 /* Adv payload: flags only */
 static const struct bt_data ad[] = {
@@ -36,6 +43,9 @@ static void connected(struct bt_conn *conn, uint8_t err)
     }
     printk("Connected\n");
 
+    /* Turn LED on */
+    gpio_pin_set_dt(&led, 1);
+
     const struct bt_le_conn_param param = {
         .interval_min = 6,   /* 7.5 ms */
         .interval_max = 12,  /* 15  ms */
@@ -47,8 +57,11 @@ static void connected(struct bt_conn *conn, uint8_t err)
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
-    printk("Disconnected (0x%02x). Restarting adv...\n", reason);
     printk("Disconnected (0x%02x). Queuing adv restart...\n", reason);
+
+    /* Turn LED off */
+    gpio_pin_set_dt(&led, 0);
+
     /* Don’t call bt_le_adv_start() directly here; defer it a bit */
     k_work_submit(&adv_restart_work);              /* immediate */
 }
@@ -60,6 +73,12 @@ BT_CONN_CB_DEFINE(conn_cbs) = {
 
 void main(void)
 {
+    int ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+    if (ret < 0) {
+        printk("Error configuring LED pin!\n");
+        return 1;
+    }
+
     int err = bt_enable(NULL);
     if (err) {
         printk("Bluetooth init failed (err %d)\n", err);
@@ -72,6 +91,9 @@ void main(void)
     printk("%s advertising as \"%s\" (err %d)\n",
            err ? "Failed to start" : "Started",
            CONFIG_BT_DEVICE_NAME, err);
+           
+    /* Turn LED off */
+    gpio_pin_set_dt(&led, 0);
 
     while (1) {
         k_sleep(K_SECONDS(1));
