@@ -5,7 +5,7 @@
 This project is a Zephyr-based firmware for ESP32 (PRO CPU).
 
 ## Prerequisites
-- Zephyr Project (recommended version: 3.2.0 or newer)
+- Zephyr Project (recommended version: 4.2.0 or newer)
 - Python 3.10 or newer
 - west (Zephyr's meta-tool)
 - CMake (minimum version: 3.20.0)
