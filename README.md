@@ -45,3 +45,6 @@ west flash
 - Ensure your Zephyr environment variables (e.g., `ZEPHYR_BASE`) are set correctly.
 - This project targets the ESP32 PRO CPU. Adjust the board argument if using a different ESP32 variant.
 - For troubleshooting, consult the Zephyr documentation and community forums.
+
+## Demo
+![Demo](demo.gif)
