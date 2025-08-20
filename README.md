@@ -4,6 +4,13 @@
 ## Overview
 This project is a Zephyr-based firmware for ESP32 (PRO CPU).
 
+### Hardware
+
+- ESP32 module running Zephyr OS
+- 2 x MG995 Servo Motors
+- DEVMO 5V Laser Transmitter 650 nm
+- 5V power supply
+
 ## Prerequisites
 - Zephyr Project (recommended version: 4.2.0 or newer)
 - Python 3.10 or newer
