@@ -6,6 +6,7 @@
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
+#include <errno.h>
 #include <string.h>
 
 
@@ -132,19 +133,19 @@ BT_CONN_CB_DEFINE(conn_cbs) = {
     .disconnected = disconnected,
 };
 
-void main(void)
+int main(void)
 {
     int ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
     if (ret < 0) {
         printk("Error configuring LED pin!\n");
-        return 1;
+        return ret;
     }
 
     /* PWM (LEDC) init */
     pwm_ledc = DEVICE_DT_GET(LEDC0_NODE);
     if (!device_is_ready(pwm_ledc)) {
         printk("LEDC not ready\n");
-        return;
+        return -ENODEV;
     }
     /* Center both servos initially */
     pwm_set(pwm_ledc, CH_PAN,  SERVO_PERIOD_NS, deg_to_pulse_ns(90), 0);
@@ -153,7 +154,7 @@ void main(void)
     int err = bt_enable(NULL);
     if (err) {
         printk("Bluetooth init failed (err %d)\n", err);
-        return;
+        return err;
     }
     printk("Bluetooth initialized\n");
 
